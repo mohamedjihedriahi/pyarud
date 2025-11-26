@@ -1,6 +1,6 @@
 [project]
 name = "pyarud"
-version = "0.1.0"
+version = "0.1.2"
 description = "A Python library for Arabic prosody (Arud) analysis."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -34,7 +34,6 @@ docs = [
 [tool.ruff]
 line-length = 120
 target-version = "py312"
-exclude = ["Bohour"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B"]

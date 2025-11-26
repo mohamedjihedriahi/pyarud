@@ -14,6 +14,7 @@ from .zihaf import (
     Thalm,
     Tharm,
     Waqas,
+    Ziyada,
 )
 
 SUKUN_CHAR = "ْ"
@@ -132,5 +133,5 @@ class Mustafe_lon(Tafeela):
 
 class Faelaton(Tafeela):
     name = "فاعلاتن"
-    allowed_zehafs = [Khaban, Kaff, Shakal, Tasheeth]
+    allowed_zehafs = [Khaban, Kaff, Shakal, Tasheeth, Ziyada]
     pattern_int = 1011010

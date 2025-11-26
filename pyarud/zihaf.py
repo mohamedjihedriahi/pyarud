@@ -81,6 +81,15 @@ class Tasheeth(BaseSingleHazfZehaf):
     affected_index = 2
 
 
+class Ziyada(BaseEllahZehaf):
+    """Adds a Mutaharrik (1) at index 3."""
+    
+    def modify_tafeela(self):
+        # Used for specific Khafeef variations (e.g. Dhata Qilaa)
+        # Inserts 1 at index 3
+        self.tafeela.add_to_pattern(3, 1, "1")
+
+
 class Thalm(BaseSingleHazfZehaf):
     affected_index = 0
 

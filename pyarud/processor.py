@@ -1,3 +1,4 @@
+import math
 from collections import Counter
 from difflib import SequenceMatcher
 
@@ -31,7 +32,9 @@ class ArudhProcessor:
             self.precomputed_patterns[name] = bahr_instance.detailed_patterns
 
     def _get_similarity(self, a, b):
-        return SequenceMatcher(None, a, b).ratio()
+        # Use cubic scaling to penalize small mismatches more heavily.
+        # A 0.95 raw ratio becomes ~0.73, increasing separation significantly.
+        return math.pow(SequenceMatcher(None, a, b).ratio(), 6)
 
     def process_poem(self, verses, meter_name=None):
         """
@@ -67,8 +70,9 @@ class ArudhProcessor:
             match_info = None
             if not meter_name:
                 # Auto-detect
-                best_match = self._find_best_meter(sadr_pattern, ajuz_pattern)
-                if best_match:
+                candidates = self._find_best_meter(sadr_pattern, ajuz_pattern)
+                if candidates:
+                    best_match = candidates[0]
                     detected_counts[best_match["meter"]] += 1
                     match_info = best_match
             else:
@@ -161,9 +165,9 @@ class ArudhProcessor:
         ), reverse=True)
 
         if not candidates:
-            return None
+            return []
             
-        return candidates[0]
+        return candidates
 
     def _find_best_component_match(self, input_pattern, component_patterns):
         best_score = -1

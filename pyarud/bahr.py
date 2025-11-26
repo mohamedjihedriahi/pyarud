@@ -489,8 +489,9 @@ class Munsareh(Bahr):
 class Khafeef(Bahr):
     tafeelat = (Faelaton, Mustafe_lon, Faelaton)
     arod_dharbs_map = {
-        NoZehafNorEllah: (NoZehafNorEllah, Tasheeth, Hadhf, HadhfAndKhaban),
-        Khaban: (NoZehafNorEllah, Tasheeth, Hadhf, HadhfAndKhaban),
+        NoZehafNorEllah: (NoZehafNorEllah, Khaban, Tasheeth, Hadhf, HadhfAndKhaban),
+        Khaban: (NoZehafNorEllah, Khaban, Tasheeth, Hadhf, HadhfAndKhaban),
+        Hadhf: (NoZehafNorEllah, Khaban, Tasheeth, Hadhf, HadhfAndKhaban),
     }
     sub_bahrs = (KhafeefMajzoo,)
     disallowed_zehafs_for_hashw = {0: ([Kaff, Shakal], []), 1: ([Kaff, Shakal], [])}

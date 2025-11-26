@@ -86,6 +86,13 @@ class ArudiConverter:
         bait = bait.replace("ك ", "كَ ")
         bait = bait.replace(" ال ", " الْ ")
         bait = bait.replace("ْ ال", "ِ ال")
+        bait = bait.replace("عَمْرٍو", "عَمْرٍ")
+        bait = bait.replace("عَمْرُو", "عَمْرُ")
+
+        # Shorten long vowels before Al (Hamzat Wasl + Lam Qamariya/Shamsiya)
+        # This handles "Iltiqa al-Sakinayn" (meeting of two sakins) by dropping the first long vowel
+        # e.g., 'إِلَى الْ' -> 'إِلَ الْ', 'فِي الْ' -> 'فِ الْ', 'ذَا الْ' -> 'ذَ الْ'
+        bait = re.sub(r"([^\s])([اىي])\s+ال", r"\1 ال", bait)
 
         # Word replacements from CHANGE_LST
         out = []
