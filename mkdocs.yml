@@ -7,9 +7,6 @@ repo_name: pyarud
 theme:
   name: material
   features:
-    - navigation.tabs
-    - navigation.sections
-    - navigation.expand
     - content.code.copy
     - toc.follow
   palette:
