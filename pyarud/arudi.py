@@ -328,7 +328,8 @@ class ArudiConverter:
                     # The i -= 1 might be to re-process? No, i += 2 at end.
 
                 # Ha' al-Gha'ib (He) handling
-                if next_next_char == " ":
+                # Only saturate if previous letter was Mutaharrik (prev_digit != "0")
+                if next_next_char == " " and prev_digit != "0":
                     if char == "ه":
                         if next_char == self.harakat[0]:  # Kasra
                             plain_chars += "ي"
