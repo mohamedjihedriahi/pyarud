@@ -277,8 +277,8 @@ class ArudiConverter:
                         out_pattern += "0"
                         plain_chars += char
                     elif (i + 1) == len(chars) - 1:
-                        # End of line sukun handling
-                        out_pattern = out_pattern[:-1] + "10"
+                        # End of line sukun handling: Allow consecutive Sukun (00)
+                        out_pattern += "0"
                         plain_chars += char
                     else:
                         plain_chars = self._handle_space(plain_chars) + char
