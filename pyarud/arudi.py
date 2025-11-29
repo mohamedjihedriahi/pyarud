@@ -79,7 +79,13 @@ class ArudiConverter:
 
     def _normalize_orthography(self, text):
         # Normalize Dagger Alif (Superscript Alif) to standard Alif
-        return text.replace("\u0670", ALEF)
+        text = text.replace("\u0670", ALEF)
+        
+        # Normalize Alif + Tanween Fath -> Tanween Fath + Alif
+        # (Ensures consistent processing order)
+        text = re.sub(f"{ALEF}{FATHATAN}", f"{FATHATAN}{ALEF}", text)
+        
+        return text
 
     def _resolve_wasl(self, text):
         """
@@ -93,6 +99,13 @@ class ArudiConverter:
         # Pattern: Space + Alif (Wasl) -> Drop both
         # Matches any word starting with bare Alif preceded by space.
         text = re.sub(r"\s+ا", "", text)
+
+        # 3. Drop Alif of "Allah" if prefixed by Fa/Wa/Ba/Ta/Kaf
+        # Pattern: (Prefix)(Vowel?)Alif(LamLam) -> (Prefix)(Vowel?)LamLam
+        prefixes = "\u0641\u0648\u0628\u062a\u0643"
+        harakat = "".join(self.harakat)
+        text = re.sub(f"([{prefixes}])([{harakat}]?)ا(لل)", r"\1\2\3", text)
+
         return text
 
     def _handle_space(self, plain_chars):
@@ -291,6 +304,10 @@ class ArudiConverter:
                     plain_chars += "ن"
                     out_pattern += "10"
 
+                    # Skip trailing Alif (Tanween Fath)
+                    if i + 2 < len(chars) and chars[i + 2] == "ا":
+                        i += 1
+
                 elif next_char in self.shadda_chars:
                     if prev_digit != "0":
                         plain_chars += char + char
@@ -309,14 +326,11 @@ class ArudiConverter:
                         elif chars[i + 2] in self.tnween_chars:
                             i += 1
                             plain_chars += "ن"
-                            out_pattern += "0"  # Shadda(1) + Tanween(0) -> 10. Wait. Shadda is 01.
-                            # If Shadda + Tanween:
-                            # Letter + Shadda + Tanween
-                            # 1. Letter Sakin (0)
-                            # 2. Letter Mutaharrik (1)
-                            # 3. Tanween (0)
-                            # Result should be 010.
-                            # Above logic adds 01, then adds 0. Correct.
+                            out_pattern += "0"
+
+                            # Skip trailing Alif (Shadda + Tanween Fath)
+                            if i + 2 < len(chars) and chars[i + 2] == "ا":
+                                i += 1
 
                 elif next_char in [ALEF, ALEF_MAKSURA]:
                     out_pattern += "10"
