@@ -79,6 +79,20 @@ class ArudiConverter:
         shadda = "".join(self.shadda_chars)
         return re.sub(f"([{harakat_all}])([{shadda}])", r"\2\1", text)
 
+    def _resolve_wasl(self, text):
+        """
+        Handles Hamzat al-Wasl (Connecting Alif) and Iltiqa al-Sakinayn.
+        1. Drop Long Vowel + Space + Alif Wasl (e.g. "Idhā Ishtadda" -> "Idhshtadda").
+        2. Drop Space + Alif Wasl (e.g. "Bika Al-" -> "Bikal-").
+        """
+        # Pattern: Letter + (Long Vowel) + Space + Alif -> Letter
+        text = re.sub(r"([^\s])([اىيو])\s+ا", r"\1", text)
+        
+        # Pattern: Space + Alif (Wasl) -> Drop both
+        # Matches any word starting with bare Alif preceded by space.
+        text = re.sub(r"\s+ا", "", text)
+        return text
+
     def _handle_space(self, plain_chars):
         if not plain_chars:
             return plain_chars
@@ -129,11 +143,6 @@ class ArudiConverter:
         bait = bait.replace("ْ ال", "ِ ال")
         bait = bait.replace("عَمْرٍو", "عَمْرٍ")
         bait = bait.replace("عَمْرُو", "عَمْرُ")
-
-        # Shorten long vowels before Al (Hamzat Wasl + Lam Qamariya/Shamsiya)
-        # This handles "Iltiqa al-Sakinayn" (meeting of two sakins) by dropping the first long vowel
-        # e.g., 'إِلَى الْ' -> 'إِلَ الْ', 'فِي الْ' -> 'فِ الْ', 'ذَا الْ' -> 'ذَ الْ'
-        bait = re.sub(r"([^\s])([اىيو])\s+ال", r"\1 ال", bait)
 
         # Word replacements from CHANGE_LST
         out = []
@@ -244,12 +253,6 @@ class ArudiConverter:
 
             if char in self.all_chars:
                 if char == " ":
-                    # Hamzat Wasl handling: Drop ' ' and 'ا' if they appear together
-                    # This connects the previous word to the next word (e.g. 'ti Al' -> 'til')
-                    if next_char == "ا":
-                        i += 2
-                        continue
-
                     plain_chars += char
                     i += 1
                     continue
@@ -394,6 +397,7 @@ class ArudiConverter:
 
         text = self._normalize_shadda(text)
         preprocessed = self._process_specials_before(text)
+        preprocessed = self._resolve_wasl(preprocessed)
         arudi_style, pattern = self._extract_pattern(preprocessed, saturate=saturate)
         arudi_style = self._process_specials_after(arudi_style)
 
