@@ -14,6 +14,7 @@ from .tafeela import (
     Tafeela,
 )
 from .zihaf import (
+    Aql,
     Asab,
     BaseEllahZehaf,
     Batr,
@@ -358,8 +359,9 @@ class Madeed(Bahr):
     tafeelat = (Faelaton, Faelon, Faelaton)
     arod_dharbs_map = {
         NoZehafNorEllah: (NoZehafNorEllah,),
-        Hadhf: (Qataa,),
+        Hadhf: (Hadhf, Batr),
         HadhfAndKhaban: (HadhfAndKhaban,),
+        Batr: (Batr,),
     }
     disallowed_zehafs_for_hashw = {
         0: ([Shakal, Tasheeth], [Tasheeth]),
@@ -395,7 +397,7 @@ class WaferMajzoo(Bahr):
 
 class Wafer(Bahr):
     tafeelat = (Mafaelaton, Mafaelaton, Mafaelaton)
-    arod_dharbs_map = {Qataf: (Qataf,)}
+    arod_dharbs_map = {Qataf: (Qataf, Aql)}
     sub_bahrs = (WaferMajzoo,)
 
 
@@ -460,7 +462,7 @@ class Ramal(Bahr):
             Khaban,
             Hadhf,
             HadhfAndKhaban,
-            Qataa,  # originally Qasar
+            Qasar,  # originally Qasar
             KhabanAndQataa,
         ),
         HadhfAndKhaban: (
@@ -506,8 +508,8 @@ class Mudhare(Bahr):
 
 class Muqtadheb(Bahr):
     tafeelat = (Mafoolato, Mustafelon)
-    arod_dharbs_map = {Tay: (Tay,)}
-    disallowed_zehafs_for_hashw = {0: ([Khabal],), 1: ([Khabal],)}
+    arod_dharbs_map = {Tay: (Tay,), Khabal: (Tay,)}
+    disallowed_zehafs_for_hashw = {0: ([],), 1: ([],)}
 
 
 class Mujtath(Bahr):

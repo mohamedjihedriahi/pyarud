@@ -5,6 +5,7 @@ from .zihaf import (
     Asab,
     Edmaar,
     Kaff,
+    Kasf,
     Khabal,
     Khaban,
     Khazal,
@@ -16,7 +17,6 @@ from .zihaf import (
     Thalm,
     Tharm,
     Waqas,
-    Ziyada,
 )
 
 SUKUN_CHAR = SUKUN
@@ -117,7 +117,7 @@ class Mafaelaton(Tafeela):
 
 class Mafoolato(Tafeela):
     name = "مفعولات"
-    allowed_zehafs = [Khaban, Tay, Khabal]
+    allowed_zehafs = [Khaban, Tay, Khabal, Kasf]
     pattern_int = 1010101
 
 
@@ -129,11 +129,11 @@ class Fae_laton(Tafeela):
 
 class Mustafe_lon(Tafeela):
     name = "مستفع لن"
-    allowed_zehafs = [Khaban, Kaff]
+    allowed_zehafs = [Khaban, Kaff, Tay, Shakal]
     pattern_int = 1010110
 
 
 class Faelaton(Tafeela):
     name = "فاعلاتن"
-    allowed_zehafs = [Khaban, Kaff, Shakal, Tasheeth, Ziyada]
+    allowed_zehafs = [Khaban, Kaff, Shakal]
     pattern_int = 1011010

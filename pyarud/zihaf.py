@@ -8,6 +8,7 @@ class BaseEllahZehaf:
 
     def __init__(self, tafeela):
         self.tafeela = deepcopy(tafeela)
+        self._modified = False
 
     def modify_tafeela(self):
         """Modify self.tafeela in place. Must be overridden."""
@@ -15,10 +16,14 @@ class BaseEllahZehaf:
 
     @property
     def modified_tafeela(self):
+        if self._modified:
+            return self.tafeela
+            
         if hasattr(self, "assertions"):
             assert all(self.assertions), "assertions failed"
         self.modify_tafeela()
         self.tafeela.applied_ella_zehaf_class = self.__class__
+        self._modified = True
         return self.tafeela
 
 
@@ -296,6 +301,14 @@ class ThalmAndQasar(BaseEllahZehaf):
     def modify_tafeela(self):
         self.tafeela = Thalm(self.tafeela).modified_tafeela
         self.tafeela = Qasar(self.tafeela).modified_tafeela
+
+
+class Aql(BaseEllahZehaf):
+    """Qataf + Khaban (Wafer)."""
+
+    def modify_tafeela(self):
+        self.tafeela = Qataf(self.tafeela).modified_tafeela
+        self.tafeela = Khaban(self.tafeela).modified_tafeela
 
 
 class Batr(BaseEllahZehaf):

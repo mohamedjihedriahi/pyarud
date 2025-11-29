@@ -59,6 +59,11 @@ class ArudiConverter:
             "لكن": "لَاكِن",
             "لكنّ": "لَاكِنّ",
             "لكنه": "لَاكِنّهُ",
+            "طه": "طَاهَ" + FATHA,
+            "لله": "لِللَاهِ",
+            "آه": "أَاهِ",
+            "هو": "هْوَ",
+            "هي": "هْيَ",
         }
 
     def register_custom_spelling(self, word, replacement):
@@ -81,9 +86,50 @@ class ArudiConverter:
         # Normalize Dagger Alif (Superscript Alif) to standard Alif
         text = text.replace("\u0670", ALEF)
         
+        # Remove Harakat from standard Alif (ALEF cannot carry vowel unless it's Hamza)
+        # This fixes cases where text has L+A+Fatha (treated as L+A(mover))
+        harakat_pattern = f"[{FATHA}{DAMMA}{KASRA}]"
+        text = re.sub(f"{ALEF}{harakat_pattern}", ALEF, text)
+        
         # Normalize Alif + Tanween Fath -> Tanween Fath + Alif
         # (Ensures consistent processing order)
         text = re.sub(f"{ALEF}{FATHATAN}", f"{FATHATAN}{ALEF}", text)
+        
+        return text
+
+    def _normalize_ligatures(self, text):
+        # Decompose Lam-Alif ligatures with potential diacritics
+        # Matches Ligature + Optional Haraka
+        # Replaces with Lam + Optional Haraka + Second Letter
+        
+        harakat_pattern = f"[{''.join(self.harakat + self.tnween_chars)}]"
+        
+        def replace_la(match):
+            # match.group(0) is the ligature + optional haraka
+            # We want L + haraka (if any) + A
+            s = match.group(0)
+            haraka = s[1:] if len(s) > 1 else ""
+            return "ل" + haraka + "ا"
+
+        def replace_la_hamza_above(match):
+            s = match.group(0)
+            haraka = s[1:] if len(s) > 1 else ""
+            return "ل" + haraka + "أ"
+
+        def replace_la_hamza_below(match):
+            s = match.group(0)
+            haraka = s[1:] if len(s) > 1 else ""
+            return "ل" + haraka + "إ"
+
+        def replace_la_madda(match):
+            s = match.group(0)
+            haraka = s[1:] if len(s) > 1 else ""
+            return "ل" + haraka + "آ"
+
+        text = re.sub(f"ﻻ({harakat_pattern})?", replace_la, text)
+        text = re.sub(f"ﻷ({harakat_pattern})?", replace_la_hamza_above, text)
+        text = re.sub(f"ﻹ({harakat_pattern})?", replace_la_hamza_below, text)
+        text = re.sub(f"ﻵ({harakat_pattern})?", replace_la_madda, text)
         
         return text
 
@@ -137,6 +183,15 @@ class ArudiConverter:
             # or Hamza with Fatha.
             bait = "أَ" + bait[1:]
 
+        # Detach prefixes to handle Al- logic (WaAl -> Wa Al)
+        # Matches: Fa, Waw, Ba, Ta, Kaf followed by Al, at start of word
+        bait = re.sub(r"(^|\s)([فوبتك])([َُِ])?ال", r"\1\2\3 ال", bait)
+
+        # Solar Lam Handling: Al + Sun Letter -> A + Sun Letter
+        # Drops the Lam which is silent in Solar cases
+        sun_letters = "تثدذرزسشصضطظلن"
+        bait = re.sub(f" ال([{sun_letters}])", r" ا\1", bait)
+
         bait = bait.replace("وا ", "و ")
         if bait.endswith("وا"):
             bait = bait[:-1]
@@ -163,50 +218,37 @@ class ArudiConverter:
         out = []
         valid_prefixes = ["و", "ف", "ك", "ب", "ل", "وب", "فك", "ول", "فل"]
         
+        # Prepare regex for stripping harakat but keeping shadda
+        # Exclude SHADDA from removal list
+        removable_chars = self.harakat + self.sukun + self.tnween_chars
+        strip_harakat_pattern = f"[{''.join(removable_chars)}]"
+
         for word in bait.split(" "):
-            cleaned_word = strip_tashkeel(word)
+            # 1. Try match with Shadda preserved (e.g. for 'لكنّ')
+            cleaned_with_shadda = re.sub(strip_harakat_pattern, "", word)
+            # 2. Try match with Shadda removed (standard)
+            cleaned_plain = strip_tashkeel(word)
+            
             found = False
             
-            # 1. Exact match check
-            for key, replacement in self.CHANGE_LST.items():
-                if cleaned_word == key:
-                    out.append(replacement)
+            # Check Exact Match (Shadda first, then Plain)
+            for candidate in [cleaned_with_shadda, cleaned_plain]:
+                if candidate in self.CHANGE_LST:
+                    out.append(self.CHANGE_LST[candidate])
                     found = True
                     break
-            
-            # 2. Prefix check if not found
-            if not found:
+            if found: 
+                continue
+
+            # Prefix check
+            # We iterate candidates again to check prefixes
+            for candidate in [cleaned_with_shadda, cleaned_plain]:
+                if found:
+                    break
                 for key, replacement in self.CHANGE_LST.items():
-                    if cleaned_word.endswith(key):
-                        prefix = cleaned_word[:-len(key)]
+                    if candidate.endswith(key):
+                        prefix = candidate[:-len(key)]
                         if prefix in valid_prefixes:
-                            # We found a prefixed match.
-                            # We need to reconstruct the word with the original prefix's diacritics
-                            # This is tricky because 'word' has diacritics intermixed.
-                            # Simple heuristic: Take the original word string up to the match?
-                            # No, diacritics make length differ.
-                            # Better: Just prepend the prefix chars? 
-                            # "وَهَذَا" -> prefix "وَ" ? 
-                            # We know cleaned prefix is "و".
-                            # Let's try to find where the key starts in the original word.
-                            
-                            # Find the index of the key's first char in the original word (last occurrence)
-                            # ... This assumes standard orthography.
-                            
-                            # Simplest robust approach for Arudi:
-                            # Just use the cleaned prefix + replacement?
-                            # "وهذا" -> "و" + "هَاذَا" -> "وهَاذَا"
-                            # But we lose the prefix's original harakat (e.g. "وَ").
-                            # Ideally we want "وَ" + "هَاذَا".
-                            
-                            # Hack: Since prefixes are usually 1-2 chars, we can assume they are at the start.
-                            # But we don't know their length in the original string (due to harakat).
-                            
-                            # Alternative: Use regex to find the suffix in the original word?
-                            # Or just use the predefined "cleaned prefix" + standard haraka?
-                            # "و" -> "وَ" (Fatha usually). "ب" -> "بِ" (Kasra). "ل" -> "لِ" (Kasra).
-                            # "ك" -> "كَ" (Fatha). "ف" -> "فَ" (Fatha).
-                            
                             prefix_harakat = {
                                 "و": "وَ", "ف": "فَ", "ك": "كَ", "ب": "بِ", "ل": "لِ"
                             }
@@ -214,7 +256,7 @@ class ArudiConverter:
                             # Construct new word
                             new_prefix = ""
                             for p_char in prefix:
-                                new_prefix += prefix_harakat.get(p_char, p_char) # Default to char if no mapping
+                                new_prefix += prefix_harakat.get(p_char, p_char) 
                                 
                             out.append(new_prefix + replacement)
                             found = True
@@ -248,7 +290,7 @@ class ArudiConverter:
         bait = bait.replace("ةن", "تن")
         return bait
 
-    def _extract_pattern(self, text, saturate=True):
+    def _extract_pattern(self, text, saturate=True, muqayyad=False):
         """
         Core logic to extract binary pattern and arudi text.
         Based on Bohour's extract_tf3eelav3.
@@ -257,7 +299,10 @@ class ArudiConverter:
         chars = list(text.replace(ALEF_MADDA, "ءَا").strip())  # Replace Madda
         chars = [c for c in chars if c in self.prem_chars]
         chars = list(re.sub(" +", " ", "".join(chars).strip()))
-
+        
+        # DEBUG
+        # print(f"Trace: {chars}")
+        
         out_pattern = ""
         plain_chars = ""
 
@@ -265,6 +310,7 @@ class ArudiConverter:
         while i < len(chars) - 1:
             char = chars[i]
             next_char = chars[i + 1]
+            # print(f"i={i}, char={char}, next={next_char}")
 
             if char in self.all_chars:
                 if char == " ":
@@ -284,8 +330,27 @@ class ArudiConverter:
 
                 # Logic
                 if next_char in self.harakat:
-                    out_pattern += "1"
-                    plain_chars += char
+                    # Check for Muqayyad (Restricted Rhyme) at the very end
+                    # If we are at the last character group (char + haraka is end of string)
+                    is_last_group = (i + 2 >= len(chars))
+                    # Or if followed by space then end? (Arudi usually strips trailing spaces but let's be safe)
+                    
+                    if muqayyad and is_last_group:
+                        # Treat as Sakin (drop vowel)
+                        if prev_digit != "0":
+                            out_pattern += "0"
+                            plain_chars += char
+                        else:
+                            # If prev was Sakin, we have Iltiqa Sakinayn at end.
+                            # In Muqayyad rhyme, this is allowed (e.g. 'Mard').
+                            # But typically we avoid 00. 
+                            # Standard Arudi: 00 is allowed at end (Waqf).
+                            out_pattern += "0"
+                            plain_chars += char
+                        # Skip the haraka
+                    else:
+                        out_pattern += "1"
+                        plain_chars += char
 
                 elif next_char in self.sukun:
                     if prev_digit != "0":
@@ -319,10 +384,21 @@ class ArudiConverter:
                     # Check what follows Shadda
                     if i + 2 < len(chars):
                         if chars[i + 2] in self.harakat:
-                            i += 1  # Skip harakat processing next loop (handled here implicitly?)
-                            # Actually Bohour logic just increments i to skip processing the harakah as separate char?
-                            # But we added '1' for the second letter of shadda.
-                            pass
+                            # Check Muqayyad for Shadda+Harakah at end?
+                            # Example: "Radd" (R + Shadda).
+                            # If "Raddu" -> R(0) R(1).
+                            # If Muqayyad "Radd" -> R(0) R(0).
+                            is_last_shadda_group = (i + 3 >= len(chars))
+                            if muqayyad and is_last_shadda_group:
+                                # We already added '01' or '1'. The '1' corresponds to the second letter being Mover.
+                                # If Muqayyad, the second letter should be Sakin.
+                                # So '01' -> '00'. '1' -> '0'.
+                                # We need to fix the last digit added.
+                                out_pattern = out_pattern[:-1] + "0"
+                                # Skip the harakah
+                                i += 1
+                            else:
+                                i += 1  # Skip harakat processing next loop
                         elif chars[i + 2] in self.tnween_chars:
                             i += 1
                             plain_chars += "ن"
@@ -355,7 +431,8 @@ class ArudiConverter:
 
                 # Ha' al-Gha'ib (He) handling
                 # Only saturate if previous letter was Mutaharrik (prev_digit != "0")
-                if next_next_char == " " and prev_digit != "0":
+                # And NOT muqayyad (if muqayyad, we don't saturate)
+                if not muqayyad and next_next_char == " " and prev_digit != "0":
                     if char == "ه":
                         if next_char == self.harakat[0]:  # Kasra
                             plain_chars += "ي"
@@ -374,11 +451,15 @@ class ArudiConverter:
                 i += 1
 
         # Finalize
-        if saturate and out_pattern and out_pattern[-1] != "0":
+        # If Muqayyad, we don't saturate.
+        # If Not Muqayyad, we saturate.
+        
+        if not muqayyad and saturate and out_pattern and out_pattern[-1] != "0":
             out_pattern += "0"  # Always end with sukun (Qafiyah)
 
         # Ashba' (Saturation) of last letter
-        if saturate and chars:
+        # Only if not muqayyad
+        if not muqayyad and saturate and chars:
             last_char = chars[-1]
             if last_char == self.harakat[0]:  # Kasra
                 plain_chars += "ي"
@@ -395,28 +476,24 @@ class ArudiConverter:
 
         return plain_chars, out_pattern
 
-    def prepare_text(self, text, saturate=True):
+    def prepare_text(self, text, saturate=True, muqayyad=False):
         """
         Converts standard Arabic text into Arudi style and extracts the binary pattern.
-
-        Args:
-            text (str): The input Arabic text (hemistich or line).
-            saturate (bool): Whether to saturate the last letter (Ishba'). Defaults to True.
-
-        Returns:
-            tuple[str, str]: A tuple containing:
-                - `arudi_style` (str): The phonetic Arudi representation (e.g., "مُسْتَفْعِلُنْ").
-                - `pattern` (str): The binary pattern string (e.g., "1010110").
         """
         text = text.strip()
         if not text:
             return "", ""
 
+        # print(f"Original: {text}")
         text = self._normalize_orthography(text)
+        # print(f"Norm Ortho: {text}")
+        text = self._normalize_ligatures(text)
         text = self._normalize_shadda(text)
         preprocessed = self._process_specials_before(text)
+        # print(f"Specials Before: {preprocessed}")
         preprocessed = self._resolve_wasl(preprocessed)
-        arudi_style, pattern = self._extract_pattern(preprocessed, saturate=saturate)
+        # print(f"Resolve Wasl: {preprocessed}")
+        arudi_style, pattern = self._extract_pattern(preprocessed, saturate=saturate, muqayyad=muqayyad)
         arudi_style = self._process_specials_after(arudi_style)
 
         return arudi_style, pattern
