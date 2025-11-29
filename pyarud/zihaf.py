@@ -283,6 +283,21 @@ class KhabalAndKasf(BaseEllahZehaf):
         self.tafeela = k.modified_tafeela
 
 
+class Qasar(BaseEllahZehaf):
+    """Drop the Sakin of Sabab Khafif & quiet the mover."""
+
+    def modify_tafeela(self):
+        assert self.tafeela.pattern[-2:] == [1, 0]
+        self.tafeela.delete_from_pattern(len(self.tafeela.pattern) - 1)
+        self.tafeela.edit_pattern_at_index(len(self.tafeela.pattern) - 1, 0)
+
+
+class ThalmAndQasar(BaseEllahZehaf):
+    def modify_tafeela(self):
+        self.tafeela = Thalm(self.tafeela).modified_tafeela
+        self.tafeela = Qasar(self.tafeela).modified_tafeela
+
+
 class Batr(BaseEllahZehaf):
     """Hadhf + Qataa (Cut tail, then cut new tail)."""
 

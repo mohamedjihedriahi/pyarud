@@ -59,8 +59,6 @@ class ArudiConverter:
             "لكن": "لَاكِن",
             "لكنّ": "لَاكِنّ",
             "لكنه": "لَاكِنّهُ",
-            "طه": "طَاهَا",
-            "يس": "يَاسِين",
         }
 
     def register_custom_spelling(self, word, replacement):
@@ -78,6 +76,10 @@ class ArudiConverter:
         harakat_all = "".join(self.harakat + self.tnween_chars)
         shadda = "".join(self.shadda_chars)
         return re.sub(f"([{harakat_all}])([{shadda}])", r"\2\1", text)
+
+    def _normalize_orthography(self, text):
+        # Normalize Dagger Alif (Superscript Alif) to standard Alif
+        return text.replace("\u0670", ALEF)
 
     def _resolve_wasl(self, text):
         """
@@ -332,6 +334,7 @@ class ArudiConverter:
                         plain_chars += char
                     else:
                         plain_chars = self._handle_space(plain_chars) + char
+                        out_pattern += "0"
                     i -= 1  # Backtrack? This logic in Bohour is tricky.
                     # If we assumed it was a letter but it's followed by a letter, we treat current as sakin.
                     # The i -= 1 might be to re-process? No, i += 2 at end.
@@ -395,6 +398,7 @@ class ArudiConverter:
         if not text:
             return "", ""
 
+        text = self._normalize_orthography(text)
         text = self._normalize_shadda(text)
         preprocessed = self._process_specials_before(text)
         preprocessed = self._resolve_wasl(preprocessed)

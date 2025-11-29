@@ -30,6 +30,7 @@ from .zihaf import (
     KhabanAndQataa,
     NoZehafNorEllah,
     Qabadh,
+    Qasar,
     Qataa,
     QataaAndEdmaar,
     Qataf,
@@ -45,6 +46,7 @@ from .zihaf import (
     Tay,
     TayAndKasf,
     Thalm,
+    ThalmAndQasar,
     Tharm,
     Waqf,
     WaqfAndTay,
@@ -520,9 +522,9 @@ class Mujtath(Bahr):
 class Mutakareb(Bahr):
     tafeelat = (Fawlon, Fawlon, Fawlon, Fawlon)
     arod_dharbs_map = {
-        NoZehafNorEllah: (NoZehafNorEllah, Hadhf, Qataa, Batr),
-        Qabadh: (NoZehafNorEllah, Hadhf, Qataa, Batr),
-        Hadhf: (NoZehafNorEllah, Hadhf, Qataa, Batr),
+        NoZehafNorEllah: (NoZehafNorEllah, Hadhf, Qataa, Batr, Qasar, ThalmAndQasar),
+        Qabadh: (NoZehafNorEllah, Hadhf, Qataa, Batr, Qasar, ThalmAndQasar),
+        Hadhf: (NoZehafNorEllah, Hadhf, Qataa, Batr, Qasar, ThalmAndQasar),
     }
     disallowed_zehafs_for_hashw = {
         0: ([], [Thalm, Tharm], [Thalm, Tharm]),
